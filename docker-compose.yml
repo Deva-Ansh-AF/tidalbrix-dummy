@@ -1,0 +1,137 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# TidalBrix DUMMY — docker-compose.yml
+#
+# Mirrors the exact same 4-service architecture as the real app:
+#   db  → backend  → frontend
+#                 → worker
+#
+# Key differences vs real docker-compose.yml:
+#   ✗ No volume mounts to D:\tide pred\fes2022  (huge tide model files)
+#   ✗ No volume mounts to D:\gebco-global       (bathymetry data)
+#   ✗ No Copernicus credentials needed
+#   ✓ Postgres still runs (so you practice DB container + healthcheck)
+#   ✓ Same port mapping (8000, 5173→80, 5432)
+#   ✓ Same dependency chain with healthchecks
+#   ✓ Same resource limits pattern
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Database (identical to real app) ────────────────────────────────────
+  db:
+    image: postgres:16
+    container_name: tidalbrix-db
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: tidalbrix
+      POSTGRES_PASSWORD: tidalbrix
+      POSTGRES_DB: tidalbrix
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    # Same healthcheck as real app — backend waits for this
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tidalbrix"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  # ── Backend (FastAPI — dummy version) ────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: tidalbrix-backend
+    restart: unless-stopped
+
+    # NOTE: In real app you'd mount:
+    #   - D:\tide pred\fes2022:/app/fes2022
+    #   - D:\gebco-global:/app/gebco
+    # These are intentionally absent in dummy mode.
+
+    env_file:
+      - .env
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    ports:
+      - "8000:8000"
+
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: tidalbrix
+      DB_USER: tidalbrix
+      DB_PASSWORD: tidalbrix
+      APP_MODE: dummy
+
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  # ── Frontend (nginx static — mirrors React/Vite container) ───────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    container_name: tidalbrix-frontend
+    restart: unless-stopped
+
+    depends_on:
+      - backend
+
+    # Real app uses port 5173 (Vite dev server). 
+    # We map 5173 host → 80 container so the port stays the same from outside.
+    ports:
+      - "5173:80"
+
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
+
+  # ── Worker (background processor — dummy version) ────────────────────────
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+
+    container_name: tidalbrix-worker
+    restart: "no"          # Worker runs once and exits — same as real pattern
+
+    depends_on:
+      - backend
+      - db
+
+    # Real app mounts ./data:/data for parquet output
+    # Dummy: no mount needed
+    environment:
+      STEP_DELAY_SECONDS: "3"    # Speed up steps for practice (real app uses 10s)
+      APP_MODE: dummy
+
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+volumes:
+  postgres_data:

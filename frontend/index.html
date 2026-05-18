@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TidalBrix Dummy</title>
+
+  <!-- Mirrors real frontend deps: MUI, Recharts, Leaflet -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
+
+  <style>
+    :root {
+      --navy: #0a1628;
+      --ocean: #1565c0;
+      --teal:  #00acc1;
+      --light: #e3f2fd;
+      --card:  #ffffff;
+      --text:  #1a1a2e;
+      --muted: #607d8b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+    body { background: var(--light); color: var(--text); }
+
+    /* ── Top Nav ───────────────────────── */
+    nav {
+      background: var(--navy);
+      color: white;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .nav-brand { font-size: 1.3rem; font-weight: 700; letter-spacing: 1px; }
+    .nav-brand span { color: var(--teal); }
+    .nav-badge {
+      background: var(--teal);
+      color: white;
+      font-size: 0.65rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .nav-status { font-size: 0.8rem; color: #80cbc4; }
+
+    /* ── Layout ────────────────────────── */
+    .layout { display: flex; height: calc(100vh - 56px); }
+    aside {
+      width: 200px;
+      background: var(--navy);
+      color: white;
+      padding: 16px 0;
+      flex-shrink: 0;
+    }
+    .sidebar-item {
+      padding: 12px 20px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      border-left: 3px solid transparent;
+      transition: all 0.2s;
+    }
+    .sidebar-item:hover, .sidebar-item.active {
+      background: rgba(255,255,255,0.08);
+      border-left-color: var(--teal);
+      color: var(--teal);
+    }
+    .sidebar-section {
+      padding: 8px 20px 4px;
+      font-size: 0.65rem;
+      color: #546e7a;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    /* ── Cards ─────────────────────────── */
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card {
+      background: var(--card);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .card-title { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .card-value { font-size: 2rem; font-weight: 700; color: var(--ocean); }
+    .card-sub { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+    .card-ok   { color: #2e7d32; font-size: 0.75rem; font-weight: 600; }
+    .card-warn { color: #e65100; font-size: 0.75rem; font-weight: 600; }
+
+    /* ── Section headers ───────────────── */
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--teal);
+    }
+
+    /* ── Map ───────────────────────────── */
+    #map { height: 280px; border-radius: 8px; margin-bottom: 24px; }
+
+    /* ── Table ─────────────────────────── */
+    .table-wrap { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 24px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    th { background: var(--navy); color: white; padding: 10px 14px; text-align: left; font-weight: 600; }
+    td { padding: 9px 14px; border-bottom: 1px solid #eceff1; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #f5f9ff; }
+    .badge-safe { background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; }
+    .badge-unsafe { background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; }
+
+    /* ── Endpoint tester ───────────────── */
+    .api-tester { background: var(--card); border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 24px; }
+    .api-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+    .method { background: var(--teal); color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
+    input, select { border: 1px solid #cfd8dc; border-radius: 4px; padding: 6px 10px; font-size: 0.82rem; }
+    input[type=text] { width: 300px; }
+    button {
+      background: var(--ocean);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 16px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: var(--teal); }
+    pre {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      padding: 16px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      overflow-x: auto;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    /* ── Cache status pills ────────────── */
+    .cache-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+    .cache-pill {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: #eceff1;
+      color: var(--muted);
+    }
+    .cache-pill.hit { background: #e8f5e9; color: #2e7d32; }
+    .cache-pill.miss { background: #ffebee; color: #c62828; }
+
+    /* ── Hidden panels ─────────────────── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Chart container ───────────────── */
+    #tideChart { width: 100%; height: 220px; background: white; border-radius: 8px; padding: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 24px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">🌊 Tidal<span>Brix</span> <span class="nav-badge">DUMMY</span></div>
+  <div class="nav-status">🟢 Backend connected &nbsp;|&nbsp; Docker deployment practice mode</div>
+</nav>
+
+<div class="layout">
+  <!-- Sidebar mirrors real app navigation -->
+  <aside>
+    <div class="sidebar-section">Overview</div>
+    <div class="sidebar-item active" onclick="showPanel('dashboard')">📊 Dashboard</div>
+    <div class="sidebar-section">Ocean Data</div>
+    <div class="sidebar-item" onclick="showPanel('tide')">🌊 Tide Prediction</div>
+    <div class="sidebar-item" onclick="showPanel('ukc')">⚓ UKC Calculator</div>
+    <div class="sidebar-item" onclick="showPanel('metocean')">🌬 Metocean</div>
+    <div class="sidebar-section">Dev Tools</div>
+    <div class="sidebar-item" onclick="showPanel('api')">🔌 API Tester</div>
+    <div class="sidebar-item" onclick="showPanel('infra')">🐳 Container Info</div>
+  </aside>
+
+  <main>
+
+    <!-- ── Dashboard ─── -->
+    <div id="panel-dashboard" class="panel active">
+      <div class="section-title">System Overview</div>
+      <div class="cards">
+        <div class="card">
+          <div class="card-title">API Status</div>
+          <div class="card-value" id="apiStatus">...</div>
+          <div class="card-sub" id="apiVersion">Checking...</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Backend Container</div>
+          <div class="card-value" style="font-size:1.1rem;" id="container">...</div>
+          <div class="card-sub">HOSTNAME from env</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Tide Height</div>
+          <div class="card-value">+1.23<span style="font-size:1rem">m</span></div>
+          <div class="card-sub card-ok">▲ Rising • 14:30 UTC</div>
+        </div>
+        <div class="card">
+          <div class="card-title">UKC (Chennai)</div>
+          <div class="card-value">2.73<span style="font-size:1rem">m</span></div>
+          <div class="card-sub card-ok">✓ SAFE (min 1.0m)</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Wind Speed</div>
+          <div class="card-value">5.2<span style="font-size:1rem">m/s</span></div>
+          <div class="card-sub">SW 225°</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Sig Wave Ht</div>
+          <div class="card-value">1.2<span style="font-size:1rem">m</span></div>
+          <div class="card-sub">Period 8.4s</div>
+        </div>
+      </div>
+
+      <div class="section-title">Dataset Cache Status</div>
+      <div class="cache-grid" id="cacheStatus">
+        <span class="cache-pill">Loading...</span>
+      </div>
+
+      <div class="section-title">Location (Chennai Port — Default)</div>
+      <div id="map"></div>
+    </div>
+
+    <!-- ── Tide ─── -->
+    <div id="panel-tide" class="panel">
+      <div class="section-title">🌊 Tide Prediction</div>
+      <div class="cards" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="card">
+          <div class="card-title">Next High Tide</div>
+          <div class="card-value">+1.87m</div>
+          <div class="card-sub">Today 16:42 UTC</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Next Low Tide</div>
+          <div class="card-value">-0.23m</div>
+          <div class="card-sub">Today 22:55 UTC</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Tidal Range</div>
+          <div class="card-value">2.10m</div>
+          <div class="card-sub">Semidiurnal</div>
+        </div>
+      </div>
+      <div id="tideChart">
+        <svg width="100%" height="196" viewBox="0 0 800 196">
+          <defs><linearGradient id="waveGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1565c0" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#1565c0" stop-opacity="0.02"/>
+          </linearGradient></defs>
+          <!-- Wave path -->
+          <path id="wavePath" d="" fill="url(#waveGrad)" stroke="#1565c0" stroke-width="2"/>
+          <!-- Labels -->
+          <text x="10" y="18" font-size="11" fill="#607d8b">Tide Height (m) — 48hr dummy forecast</text>
+          <line x1="0" y1="98" x2="800" y2="98" stroke="#cfd8dc" stroke-dasharray="4"/>
+          <text x="4" y="96" font-size="9" fill="#90a4ae">0m</text>
+          <line x1="0" y1="49" x2="800" y2="49" stroke="#e3f2fd"/>
+          <text x="4" y="47" font-size="9" fill="#90a4ae">+1m</text>
+          <line x1="0" y1="147" x2="800" y2="147" stroke="#e3f2fd"/>
+          <text x="4" y="145" font-size="9" fill="#90a4ae">-1m</text>
+        </svg>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Timestamp (UTC)</th><th>Tide Height (m)</th><th>Phase</th></tr></thead>
+          <tbody id="tideTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── UKC ─── -->
+    <div id="panel-ukc" class="panel">
+      <div class="section-title">⚓ Under Keel Clearance</div>
+      <div class="cards" style="grid-template-columns: repeat(3,1fr);">
+        <div class="card">
+          <div class="card-title">Vessel Draft</div>
+          <div class="card-value">8.5m</div>
+          <div class="card-sub">Input parameter</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Charted Depth</div>
+          <div class="card-value">12.0m</div>
+          <div class="card-sub">Chart datum (dummy)</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Required UKC</div>
+          <div class="card-value">1.0m</div>
+          <div class="card-sub">Minimum safe clearance</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Timestamp</th><th>Tide (m)</th><th>Available Depth (m)</th><th>UKC (m)</th><th>Status</th></tr></thead>
+          <tbody id="ukcTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Metocean ─── -->
+    <div id="panel-metocean" class="panel">
+      <div class="section-title">🌬 Metocean Data</div>
+      <div class="cards">
+        <div class="card"><div class="card-title">Wind</div><div class="card-value">5.2 m/s</div><div class="card-sub">SW 225° • Source: dummy</div></div>
+        <div class="card"><div class="card-title">Sig Wave Height</div><div class="card-value">1.2 m</div><div class="card-sub">Period: 8.4s</div></div>
+        <div class="card"><div class="card-title">Current Speed</div><div class="card-value">0.32 m/s</div><div class="card-sub">u=0.3, v=-0.1</div></div>
+        <div class="card"><div class="card-title">Sea Level Anomaly</div><div class="card-value">+0.12 m</div><div class="card-sub">CMEMS dummy</div></div>
+      </div>
+      <p style="color:var(--muted); font-size:0.82rem; margin-top:8px;">
+        ℹ️ In the real app these endpoints hit Copernicus Marine (CMEMS) and return NetCDF data
+        which is cached as Parquet. Here they return mocked JSON — same API shape, zero credentials needed.
+      </p>
+    </div>
+
+    <!-- ── API Tester ─── -->
+    <div id="panel-api" class="panel">
+      <div class="section-title">🔌 Live API Tester</div>
+      <div class="api-tester">
+        <div class="api-row">
+          <span class="method">GET</span>
+          <input type="text" id="apiUrl" value="/health"/>
+          <button onclick="callApi()">Send</button>
+          <button onclick="setUrl('/auth/login', 'POST')">Login</button>
+          <button onclick="setUrl('/tide/predict?lat=13.08&lon=80.27&days=2', 'GET')">Tide</button>
+          <button onclick="setUrl('/ukc/calculate?lat=13.08&lon=80.27&draft=8.5', 'GET')">UKC</button>
+          <button onclick="setUrl('/api/ocean/cache-status', 'GET')">Cache</button>
+        </div>
+        <pre id="apiOut">Click Send or a shortcut button to call the backend API →</pre>
+      </div>
+      <p style="color:var(--muted);font-size:0.8rem;">
+        The backend is at <code>http://localhost:8000</code> (or the EC2 public IP on port 8000).
+        All endpoints accept the dummy token: <code>dummy-jwt-token-for-testing</code>
+      </p>
+    </div>
+
+    <!-- ── Container Info ─── -->
+    <div id="panel-infra" class="panel">
+      <div class="section-title">🐳 Container & Deployment Info</div>
+      <div class="cards">
+        <div class="card">
+          <div class="card-title">Frontend Container</div>
+          <div class="card-value" style="font-size:0.9rem;">nginx:alpine</div>
+          <div class="card-sub">Port 5173 → 80</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Backend Container</div>
+          <div class="card-value" style="font-size:0.9rem;">python:3.11-slim</div>
+          <div class="card-sub">Port 8000 • FastAPI + uvicorn</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Database Container</div>
+          <div class="card-value" style="font-size:0.9rem;">postgres:16</div>
+          <div class="card-sub">Port 5432 • With healthcheck</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Worker Container</div>
+          <div class="card-value" style="font-size:0.9rem;">python:3.11-slim</div>
+          <div class="card-sub">Runs & exits • Mimics real worker</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">Architecture (same as real app)</div>
+        <pre style="background:#f5f9ff; color:#1a1a2e; margin-top:8px;">
+  EC2 Instance
+  └── docker compose up
+      ├── db        (postgres:16)           ← healthcheck gate
+      ├── backend   (FastAPI / uvicorn)     ← depends on db
+      ├── frontend  (nginx static)          ← depends on backend
+      └── worker    (Python job)            ← depends on backend + db
+        </pre>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">Key differences vs. real app</div>
+        <ul style="font-size:0.82rem; padding-left:16px; line-height:2;">
+          <li>No Copernicus / CMEMS credentials needed</li>
+          <li>No large NetCDF or FES2022 tide model files</li>
+          <li>No GEBCO bathymetry data volume mount</li>
+          <li>No real JWT secret (uses dummy token)</li>
+          <li>DB schema is empty — no migrations needed</li>
+          <li>Worker just prints steps and exits (no real processing)</li>
+          <li>All API responses are mocked in-memory</li>
+        </ul>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ── Panel switching ───────────────────────────────────────────────────────
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ── Backend base URL (works via nginx proxy_pass or direct) ───────────────
+const API = window.location.protocol + '//' + window.location.hostname + ':8000';
+
+// ── API tester ────────────────────────────────────────────────────────────
+let currentMethod = 'GET';
+function setUrl(url, method) {
+  document.getElementById('apiUrl').value = url;
+  currentMethod = method || 'GET';
+}
+async function callApi() {
+  const url = API + document.getElementById('apiUrl').value;
+  const out = document.getElementById('apiOut');
+  out.textContent = 'Calling ' + url + '…';
+  try {
+    const opts = { method: currentMethod, headers: { 'Authorization': 'Bearer dummy-jwt-token-for-testing' } };
+    if (currentMethod === 'POST') {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify({ lat: 13.08, lon: 80.27, start_date: '2024-01-01', end_date: '2024-01-03' });
+    }
+    const r = await fetch(url, opts);
+    const data = await r.json();
+    out.textContent = JSON.stringify(data, null, 2);
+  } catch(e) {
+    out.textContent = 'Error: ' + e.message + '\n\nMake sure the backend container is running on port 8000.';
+  }
+}
+
+// ── Dashboard: load live data ─────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const r = await fetch(API + '/');
+    const d = await r.json();
+    document.getElementById('apiStatus').textContent = d.status === 'running' ? '🟢 UP' : '🔴 DOWN';
+    document.getElementById('apiVersion').textContent = 'v' + d.version;
+    document.getElementById('container').textContent = d.container || 'unknown';
+  } catch(e) {
+    document.getElementById('apiStatus').textContent = '🔴 ERR';
+    document.getElementById('apiVersion').textContent = 'Backend unreachable';
+  }
+
+  try {
+    const r = await fetch(API + '/api/ocean/cache-status', { headers: { 'Authorization': 'Bearer dummy-jwt-token-for-testing' } });
+    const d = await r.json();
+    const el = document.getElementById('cacheStatus');
+    el.innerHTML = Object.entries(d)
+      .filter(([k]) => k !== 'note')
+      .map(([k, v]) => `<span class="cache-pill ${v?'hit':'miss'}">${v?'✓':'✗'} ${k}</span>`)
+      .join('');
+  } catch(e) {}
+}
+
+// ── Leaflet map ───────────────────────────────────────────────────────────
+function initMap() {
+  const map = L.map('map').setView([13.0827, 80.2707], 8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+  L.marker([13.0827, 80.2707])
+    .addTo(map)
+    .bindPopup('<b>Chennai Port</b><br>Lat 13.08° N, Lon 80.27° E<br>Dummy location')
+    .openPopup();
+}
+
+// ── Tide SVG wave ─────────────────────────────────────────────────────────
+function drawWave() {
+  const points = [];
+  for (let i = 0; i <= 48; i++) {
+    const h = 1.5 * Math.sin(2 * Math.PI * i / 12.4) + 0.3 * Math.sin(2 * Math.PI * i / 24);
+    const x = (i / 48) * 800;
+    const y = 98 - h * 49;
+    points.push([x, y]);
+  }
+  const d = 'M ' + points.map(p => p.join(',')).join(' L ') + ' L 800,196 L 0,196 Z';
+  document.getElementById('wavePath').setAttribute('d', d);
+}
+
+// ── Tide table ────────────────────────────────────────────────────────────
+function fillTideTable() {
+  const tbody = document.getElementById('tideTable');
+  for (let h = 0; h < 12; h++) {
+    const height = (1.5 * Math.sin(2 * Math.PI * h / 12.4) + 0.3 * Math.sin(2 * Math.PI * h / 24)).toFixed(3);
+    const date = new Date(Date.UTC(2024,0,1,h));
+    const phase = height > 0 ? '▲ Rising' : '▼ Falling';
+    tbody.innerHTML += `<tr><td>${date.toISOString().replace('T',' ').slice(0,19)}</td><td>${height}</td><td>${phase}</td></tr>`;
+  }
+}
+
+// ── UKC table ─────────────────────────────────────────────────────────────
+function fillUkcTable() {
+  const tbody = document.getElementById('ukcTable');
+  for (let h = 0; h < 10; h++) {
+    const tide = (1.5 * Math.sin(2 * Math.PI * h / 12.4)).toFixed(3);
+    const avail = (12 + parseFloat(tide)).toFixed(3);
+    const ukc   = (parseFloat(avail) - 8.5).toFixed(3);
+    const safe  = parseFloat(ukc) >= 1.0;
+    const date  = new Date(Date.UTC(2024,0,1,h));
+    tbody.innerHTML += `<tr>
+      <td>${date.toISOString().replace('T',' ').slice(0,19)}</td>
+      <td>${tide}</td><td>${avail}</td><td>${ukc}</td>
+      <td><span class="${safe?'badge-safe':'badge-unsafe'}">${safe?'SAFE':'UNSAFE'}</span></td>
+    </tr>`;
+  }
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+window.onload = () => {
+  initMap();
+  drawWave();
+  fillTideTable();
+  fillUkcTable();
+  loadDashboard();
+  setInterval(loadDashboard, 30000);
+};
+</script>
+</body>
+</html>
